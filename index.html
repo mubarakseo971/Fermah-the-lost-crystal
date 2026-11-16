@@ -1,575 +1,225 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Lost Crystal - Forest Adventure</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>The Lost Crystal — Forest Village</title>
 <style>
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  padding: 15px;
-  background: #182b35;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
-}
-
-h1 {
-  color: #ffe17b;
-  margin-bottom: 5px;
-}
-
-.subtitle {
-  color: #c8e2d4;
-}
-
-.game-container {
-  max-width: 850px;
-  margin: 15px auto;
-}
-
-.hud {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 12px;
-  background: #294b45;
-  border-radius: 12px 12px 0 0;
-  font-weight: bold;
-}
-
-canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  background: #82c96c;
-  border: 4px solid #e7d59a;
-  border-radius: 0 0 12px 12px;
-  touch-action: none;
-}
-
-button {
-  border: 0;
-  border-radius: 12px;
-  padding: 13px 19px;
-  background: #ffd966;
-  color: #243c37;
-  font-size: 17px;
-  font-weight: bold;
-  cursor: pointer;
-  user-select: none;
-  touch-action: none;
-}
-
-button:active {
-  background: #f3ad3d;
-  transform: scale(.96);
-}
-
-#message {
-  min-height: 28px;
-  color: #ffe9a6;
-  font-weight: bold;
-}
-
-.controls {
-  display: grid;
-  grid-template-columns: repeat(3, 65px);
-  grid-template-rows: repeat(2, 58px);
-  justify-content: center;
-  gap: 7px;
-  margin: 15px auto;
-}
-
-.controls button {
-  padding: 5px;
-  font-size: 25px;
-}
-
-.up { grid-column: 2; grid-row: 1; }
-.left { grid-column: 1; grid-row: 2; }
-.down { grid-column: 2; grid-row: 2; }
-.right { grid-column: 3; grid-row: 2; }
-
-.instructions {
-  max-width: 600px;
-  margin: 20px auto;
-  line-height: 1.7;
-  color: #d5e9de;
-}
+:root{--ink:#173c36;--gold:#ffe18a;--panel:#174c46}
+*{box-sizing:border-box}
+body{margin:0;padding:14px;background:#17313b;color:#fff;font-family:system-ui,Arial,sans-serif;text-align:center}
+h1{margin:4px 0;color:var(--gold);font-size:clamp(22px,4vw,32px)}
+.sub{margin:4px 0 12px;color:#d8eee2}
+.wrap{width:min(960px,100%);margin:auto}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;background:var(--panel);border:2px solid #d8c58d;border-bottom:0;border-radius:14px 14px 0 0;font-weight:800}
+.hud span{white-space:nowrap}
+#game{display:block;width:100%;height:auto;background:#8bd46e;border:3px solid #d8c58d;border-radius:0 0 14px 14px;touch-action:none}
+#message{min-height:28px;margin:10px 0;color:#ffe7a6;font-weight:700}
+.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+button{border:0;border-radius:12px;padding:11px 18px;background:#ffdc70;color:#243c35;font-size:16px;font-weight:800;cursor:pointer;touch-action:none}
+button:active{transform:scale(.96);background:#f5b94e}
+.pad{display:grid;grid-template-columns:repeat(3,62px);grid-template-rows:repeat(2,54px);gap:6px;justify-content:center;margin:12px auto 4px;touch-action:none}
+.pad button{padding:4px;font-size:24px;background:#d9f1e5;border:2px solid #397c6b}
+.pad .up{grid-column:2;grid-row:1}.pad .left{grid-column:1;grid-row:2}.pad .down{grid-column:2;grid-row:2}.pad .right{grid-column:3;grid-row:2}
+.help{max-width:700px;margin:12px auto;color:#d7e8df;line-height:1.55;font-size:14px}
+@media(min-width:760px){.mobile-controls{display:none}}
+@media(max-width:759px){body{padding:8px}.hud{font-size:13px}.pad button{min-height:48px}}
 </style>
 </head>
-
 <body>
-
-<h1>🌳 THE LOST CRYSTAL</h1>
-<p class="subtitle">A Magical Forest Adventure</p>
-
-<div class="game-container">
-
+<h1>🦈 THE LOST CRYSTAL</h1>
+<p class="sub">Level 2: Forest Village</p>
+<div class="wrap">
   <div class="hud">
-    <span>💎 Crystals: <span id="score">0</span>/5</span>
-    <span>❤️ Lives: <span id="lives">3</span></span>
-    <span>🏆 Mission: Find the Portal</span>
+    <span>❤️ Lives: <b id="lives">3</b></span>
+    <span>🏮 Village seals: <b id="seals">0 / 3</b></span>
+    <span>⭐ Coins: <b id="coins">0</b></span>
+    <span id="objective">Quest: Find 3 seals</span>
   </div>
-
-  <canvas id="game" width="800" height="520"></canvas>
-
-  <p id="message">Explore the forest and collect 5 magic crystals!</p>
-
-  <button onclick="startGame()">▶ Start / Restart</button>
-
-  <div class="controls">
-    <button class="up" data-key="up">⬆️</button>
-    <button class="left" data-key="left">⬅️</button>
-    <button class="down" data-key="down">⬇️</button>
-    <button class="right" data-key="right">➡️</button>
+  <canvas id="game" width="900" height="600" aria-label="Forest Village adventure game"></canvas>
+  <p id="message" role="status">The village gate is sealed. Find 3 glowing village seals, then reach the gate!</p>
+  <div class="actions">
+    <button id="restart">↻ Restart level</button>
+    <button id="pause">Ⅱ Pause</button>
   </div>
-
+  <div class="mobile-controls">
+    <div class="pad">
+      <button class="up" data-dir="up" aria-label="Move up">▲</button>
+      <button class="left" data-dir="left" aria-label="Move left">◀</button>
+      <button class="down" data-dir="down" aria-label="Move down">▼</button>
+      <button class="right" data-dir="right" aria-label="Move right">▶</button>
+    </div>
+  </div>
 </div>
-
-<div class="instructions">
-  <b>How to play</b><br>
-  PC: Use Arrow Keys or WASD to move.<br>
-  Mobile: Use the directional buttons.<br>
-  Collect all 5 crystals, avoid the monsters and reach the portal!
-</div>
+<p class="help"><b>PC:</b> Arrow keys or WASD to move. <b>Mobile:</b> Use the directional pad. Collect all 3 golden seals, avoid the grumpy slimes, and enter the glowing village gate. Touch the blue villager for a hint.</p>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-const scoreDisplay = document.getElementById("score");
-const livesDisplay = document.getElementById("lives");
-const message = document.getElementById("message");
-
-const W = 800;
-const H = 520;
-
-let player, enemies, crystals;
-let score = 0;
-let lives = 3;
-let gameState = "playing";
-let invincible = 0;
-let animationTime = 0;
-
-const keys = {};
-
-const portal = {
-  x: 735,
-  y: 455,
-  r: 29
-};
-
-// Forest obstacles
-const obstacles = [
-  {x:130,y:90,w:70,h:75,type:"tree"},
-  {x:270,y:80,w:75,h:75,type:"tree"},
-  {x:450,y:100,w:80,h:70,type:"tree"},
-  {x:650,y:100,w:75,h:75,type:"tree"},
-  {x:100,y:260,w:70,h:70,type:"rock"},
-  {x:300,y:270,w:85,h:65,type:"tree"},
-  {x:490,y:300,w:75,h:75,type:"tree"},
-  {x:650,y:300,w:70,h:70,type:"rock"},
-  {x:190,y:420,w:80,h:60,type:"tree"},
-  {x:410,y:440,w:75,h:55,type:"rock"}
+(() => {
+"use strict";
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
+const W=canvas.width,H=canvas.height;
+const ui={lives:document.getElementById("lives"),seals:document.getElementById("seals"),coins:document.getElementById("coins"),objective:document.getElementById("objective"),message:document.getElementById("message"),pause:document.getElementById("pause")};
+const mascot=new Image(); mascot.src="assets/mascot.png";
+const keys=Object.create(null);
+let player,seals,coins,enemies,gameState="playing",lives=3,coinCount=0,frame=0,invuln=0;
+const gate={x:824,y:104,w:52,h:76};
+const villager={x:130,y:465,r:22};
+const solids=[
+ {x:40,y:40,w:190,h:105,type:"house",label:"Bakery"},
+ {x:270,y:45,w:165,h:110,type:"house",label:"Inn"},
+ {x:635,y:42,w:145,h:112,type:"house",label:"Cottage"},
+ {x:55,y:255,w:115,h:70,type:"stall"},
+ {x:705,y:280,w:130,h:75,type:"stall"},
+ {x:345,y:210,w:65,h:60,type:"well"},
+ {x:520,y:400,w:160,h:45,type:"fence"},
+ {x:265,y:405,w:90,h:48,type:"rock"},
+ {x:760,y:465,w:85,h:55,type:"rock"},
+ {x:430,y:55,w:40,h:60,type:"tree"},
+ {x:480,y:65,w:40,h:60,type:"tree"}
 ];
-
-const crystalLocations = [
-  {x:210,y:165},
-  {x:385,y:190},
-  {x:570,y:205},
-  {x:350,y:390},
-  {x:680,y:440}
-];
-
-function startGame() {
-  player = {x:45,y:45,w:27,h:32,speed:3.3};
-  score = 0;
-  lives = 3;
-  invincible = 0;
-  animationTime = 0;
-  gameState = "playing";
-
-  enemies = [
-    {x:380,y:50,speed:1.05,r:15},
-    {x:550,y:400,speed:1.2,r:16},
-    {x:100,y:370,speed:0.95,r:14}
-  ];
-
-  crystals = crystalLocations.map(p => ({
-    x:p.x, y:p.y, collected:false
-  }));
-
-  updateHUD();
-  message.textContent =
-    "Find all 5 crystals and unlock the portal!";
+function rectHit(x,y,r,o){const px=Math.max(o.x,Math.min(x,o.x+o.w)),py=Math.max(o.y,Math.min(y,o.y+o.h));return Math.hypot(x-px,y-py)<r;}
+function blocked(x,y){if(x<18||x>W-18||y<18||y>H-18)return true;return solids.some(o=>rectHit(x,y,14,o))||rectHit(x,y,14,gate);}
+function reset(){
+ player={x:90,y:170,r:17,speed:3.15,face:1};
+ seals=[{x:235,y:205,got:false},{x:570,y:220,got:false},{x:690,y:510,got:false}];
+ coins=[{x:220,y:365,got:false},{x:455,y:330,got:false},{x:600,y:520,got:false},{x:845,y:390,got:false}];
+ enemies=[{x:215,y:505,speed:1.05,phase:0},{x:565,y:290,speed:1.2,phase:2.1},{x:820,y:205,speed:1.0,phase:4}];
+ lives=3;coinCount=0;invuln=0;frame=0;gameState="playing";keysReset();ui.message.textContent="The village gate is sealed. Find 3 glowing village seals, then reach the gate!";ui.pause.textContent="Ⅱ Pause";hud();
 }
-
-function updateHUD() {
-  scoreDisplay.textContent = score;
-  livesDisplay.textContent = lives;
+function keysReset(){for(const k in keys)keys[k]=false;}
+function hud(){ui.lives.textContent=lives;ui.seals.textContent=seals.filter(s=>s.got).length+" / 3";ui.coins.textContent=coinCount;ui.objective.textContent=seals.every(s=>s.got)?"Quest: Reach the gate":"Quest: Find "+(3-seals.filter(s=>s.got).length)+" seal(s)";}
+function move(){
+ let dx=0,dy=0;
+ if(keys.ArrowLeft||keys.a||keys.left)dx--;if(keys.ArrowRight||keys.d||keys.right)dx++;
+ if(keys.ArrowUp||keys.w||keys.up)dy--;if(keys.ArrowDown||keys.s||keys.down)dy++;
+ if(dx&&dy){dx*=.7071;dy*=.7071;}
+ if(dx)player.face=Math.sign(dx);
+ const nx=player.x+dx*player.speed,ny=player.y+dy*player.speed;
+ if(!blocked(nx,player.y))player.x=nx;
+ if(!blocked(player.x,ny))player.y=ny;
 }
-
-function circleRect(cx,cy,r,rect) {
-  const x = Math.max(rect.x,Math.min(cx,rect.x+rect.w));
-  const y = Math.max(rect.y,Math.min(cy,rect.y+rect.h));
-  return Math.hypot(cx-x,cy-y) < r;
+function update(){
+ if(gameState!=="playing")return;frame++;if(invuln>0)invuln--;
+ move();
+ seals.forEach(s=>{if(!s.got&&Math.hypot(player.x-s.x,player.y-s.y)<29){s.got=true;ui.message.textContent="✨ Village seal found!";hud();}});
+ coins.forEach(c=>{if(!c.got&&Math.hypot(player.x-c.x,player.y-c.y)<25){c.got=true;coinCount+=10;ui.message.textContent="🪙 Coin collected: +10";hud();}});
+ enemies.forEach((e,i)=>{
+   // Slimes patrol their own small area, occasionally drifting toward the player.
+   const targetX=e.x+Math.sin(frame*.018+e.phase)*1.1;
+   const targetY=e.y+Math.cos(frame*.015+e.phase)*.8;
+   const dx=player.x-e.x,dy=player.y-e.y,dist=Math.hypot(dx,dy);
+   let vx=Math.sin(frame*.018+e.phase)*.85,vy=Math.cos(frame*.015+e.phase)*.55;
+   if(dist<145&&dist>0){vx=dx/dist*.72+vx*.35;vy=dy/dist*.72+vy*.35;}
+   if(!blocked(e.x+vx,e.y))e.x+=vx;if(!blocked(e.x,e.y+vy))e.y+=vy;
+   if(invuln===0&&Math.hypot(player.x-e.x,player.y-e.y)<27){
+     lives--;invuln=100;player.x=90;player.y=170;hud();
+     ui.message.textContent=lives?"A slime bumped you! Be careful.":"The slimes got you. Restart and try again!";
+     if(lives<=0)gameState="lost";
+   }
+ });
+ if(Math.hypot(player.x-villager.x,player.y-villager.y)<38&&frame%100===0)ui.message.textContent="Villager: The three golden seals will open the gate!";
+ if(Math.hypot(player.x-(gate.x+gate.w/2),player.y-(gate.y+gate.h/2))<48){
+   if(seals.every(s=>s.got)){gameState="won";ui.message.textContent="🏆 Village saved! You unlocked the Forest Village gate!";}
+   else if(frame%60===0)ui.message.textContent="The gate is locked. Find all 3 village seals!";
+ }
 }
-
-function blocked(x,y) {
-  if (x < 18 || x > W-18 || y < 18 || y > H-18)
-    return true;
-
-  return obstacles.some(o =>
-    circleRect(x,y,13,o)
-  );
+function drawGround(){
+ ctx.fillStyle="#83cf70";ctx.fillRect(0,0,W,H);
+ // grassy texture
+ for(let i=0;i<115;i++){let x=(i*83+21)%W,y=(i*47+13)%H;ctx.fillStyle=i%2?"#70bd62":"#a2df75";ctx.beginPath();ctx.ellipse(x,y,3,7,-.4,0,Math.PI*2);ctx.fill();}
+ // winding village lane
+ ctx.strokeStyle="#eac77e";ctx.lineWidth=78;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(0,180);ctx.bezierCurveTo(250,175,300,350,510,345);ctx.bezierCurveTo(690,340,720,185,900,180);ctx.stroke();
+ ctx.strokeStyle="#f6d99a";ctx.lineWidth=3;ctx.setLineDash([12,15]);ctx.stroke();ctx.setLineDash([]);
 }
-
-function movePlayer() {
-  let dx = 0;
-  let dy = 0;
-
-  if (keys.ArrowLeft || keys.a || keys.left) dx--;
-  if (keys.ArrowRight || keys.d || keys.right) dx++;
-  if (keys.ArrowUp || keys.w || keys.up) dy--;
-  if (keys.ArrowDown || keys.s || keys.down) dy++;
-
-  if (dx && dy) {
-    dx *= 0.707;
-    dy *= 0.707;
+function drawHouse(o){
+ ctx.fillStyle="#a85f3b";ctx.fillRect(o.x,o.y+35,o.w,o.h-35);
+ ctx.fillStyle=o.label==="Bakery"?"#d86f52":o.label==="Inn"?"#b95747":"#c47d45";
+ ctx.beginPath();ctx.moveTo(o.x-12,o.y+42);ctx.lineTo(o.x+o.w/2,o.y-12);ctx.lineTo(o.x+o.w+12,o.y+42);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#ffe2a1";ctx.fillRect(o.x+o.w*.15,o.y+58,25,27);ctx.fillRect(o.x+o.w*.68,o.y+58,25,27);
+ ctx.fillStyle="#68412e";ctx.fillRect(o.x+o.w*.42,o.y+o.h-43,29,43);
+ ctx.fillStyle="#fff1c5";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText(o.label,o.x+o.w/2,o.y+o.h+13);
+}
+function drawSolids(){
+ solids.forEach(o=>{
+  if(o.type==="house")drawHouse(o);
+  else if(o.type==="stall"){
+   ctx.fillStyle="#85532f";ctx.fillRect(o.x,o.y+24,o.w,42);
+   ctx.fillStyle="#e96c55";ctx.fillRect(o.x-5,o.y+8,o.w+10,20);
+   for(let i=0;i<4;i++){ctx.fillStyle=i%2?"#ffe19a":"#fff0c5";ctx.fillRect(o.x+i*o.w/4,o.y+8,o.w/8,20);}
+   ctx.fillStyle="#fff";ctx.font="bold 12px Arial";ctx.fillText("MARKET",o.x+o.w/2,o.y+54);
+  }else if(o.type==="well"){
+   ctx.fillStyle="#8a9b9b";ctx.beginPath();ctx.ellipse(o.x+32,o.y+35,34,25,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#4db4c5";ctx.beginPath();ctx.ellipse(o.x+32,o.y+31,23,14,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#775333";ctx.fillRect(o.x+8,o.y-5,5,18);ctx.fillRect(o.x+53,o.y-5,5,18);
+  }else if(o.type==="fence"){
+   ctx.fillStyle="#95602f";ctx.fillRect(o.x,o.y+10,o.w,10);ctx.fillRect(o.x,o.y+31,o.w,9);
+   for(let x=o.x;x<o.x+o.w;x+=35)ctx.fillRect(x,o.y,9,48);
+  }else if(o.type==="rock"){
+   ctx.fillStyle="#879b91";ctx.beginPath();ctx.ellipse(o.x+o.w/2,o.y+o.h/2,o.w/2,o.h/2,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#b9c7aa";ctx.beginPath();ctx.ellipse(o.x+o.w*.35,o.y+o.h*.3,12,7,-.4,0,Math.PI*2);ctx.fill();
+  }else{
+   ctx.fillStyle="#76502e";ctx.fillRect(o.x+15,o.y+28,12,35);ctx.fillStyle="#27814b";ctx.beginPath();ctx.arc(o.x+20,o.y+20,30,0,Math.PI*2);ctx.fill();
   }
-
-  const nx = player.x + dx * player.speed;
-  const ny = player.y + dy * player.speed;
-
-  if (!blocked(nx,player.y)) player.x = nx;
-  if (!blocked(player.x,ny)) player.y = ny;
+ });
 }
-
-function updateEnemies() {
-  enemies.forEach(enemy => {
-    const dx = player.x - enemy.x;
-    const dy = player.y - enemy.y;
-    const dist = Math.hypot(dx,dy);
-
-    if (dist > 0) {
-      const nx = enemy.x + dx/dist*enemy.speed;
-      const ny = enemy.y + dy/dist*enemy.speed;
-
-      if (!blocked(nx,enemy.y)) enemy.x = nx;
-      if (!blocked(enemy.x,ny)) enemy.y = ny;
-    }
-
-    if (invincible <= 0 &&
-        Math.hypot(player.x-enemy.x,player.y-enemy.y) < 27) {
-      lives--;
-      invincible = 100;
-
-      player.x = 45;
-      player.y = 45;
-
-      updateHUD();
-
-      if (lives <= 0) {
-        gameState = "lost";
-        message.textContent =
-          "Game Over! Press Start / Restart to try again.";
-      } else {
-        message.textContent =
-          "Ouch! A monster caught you. Be careful!";
-      }
-    }
-  });
+function drawGate(){
+ ctx.fillStyle="#777e91";ctx.fillRect(gate.x,gate.y+25,gate.w,52);
+ ctx.fillStyle="#a9b0c4";ctx.beginPath();ctx.arc(gate.x+gate.w/2,gate.y+29,32,Math.PI,0);ctx.fill();
+ ctx.fillStyle=seals.every(s=>s.got)?"#a34dff":"#58627b";ctx.beginPath();ctx.arc(gate.x+gate.w/2,gate.y+42,19,Math.PI,0);ctx.lineTo(gate.x+gate.w/2+19,gate.y+76);ctx.lineTo(gate.x+gate.w/2-19,gate.y+76);ctx.fill();
+ ctx.fillStyle="#ffe18a";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText("GATE",gate.x+gate.w/2,gate.y+91);
 }
-
-function collectCrystals() {
-  crystals.forEach(crystal => {
-    if (!crystal.collected &&
-        Math.hypot(player.x-crystal.x,player.y-crystal.y)<25) {
-      crystal.collected = true;
-      score++;
-      updateHUD();
-      message.textContent = "✨ Crystal collected! Keep exploring!";
-    }
-  });
+function drawCollectibles(){
+ seals.forEach(s=>{if(s.got)return;ctx.save();ctx.translate(s.x,s.y+Math.sin(frame*.07+s.x)*4);ctx.shadowColor="#ffdf55";ctx.shadowBlur=18;ctx.fillStyle="#ffd84f";ctx.beginPath();ctx.moveTo(0,-17);ctx.lineTo(13,0);ctx.lineTo(0,17);ctx.lineTo(-13,0);ctx.closePath();ctx.fill();ctx.strokeStyle="#fff4b5";ctx.lineWidth=3;ctx.stroke();ctx.restore();});
+ coins.forEach(c=>{if(c.got)return;ctx.fillStyle="#f4ae2d";ctx.beginPath();ctx.arc(c.x,c.y,9,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#ffe99a";ctx.lineWidth=3;ctx.stroke();});
 }
-
-function checkPortal() {
-  if (Math.hypot(player.x-portal.x,player.y-portal.y)<35) {
-    if (score === 5) {
-      gameState = "won";
-      message.textContent =
-        "🎉 YOU WON! The magical portal is unlocked!";
-    } else {
-      message.textContent =
-        "The portal is locked! Find all 5 crystals first.";
-    }
-  }
+function drawVillager(){
+ ctx.fillStyle="#367fc3";ctx.beginPath();ctx.arc(villager.x,villager.y,18,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#ffd6a5";ctx.beginPath();ctx.arc(villager.x,villager.y-8,10,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#65452f";ctx.fillRect(villager.x-11,villager.y-19,22,7);
+ ctx.fillStyle="#fff";ctx.font="bold 11px Arial";ctx.textAlign="center";ctx.fillText("TALK",villager.x,villager.y-28);
 }
-
-function update() {
-  if (gameState !== "playing") return;
-
-  animationTime++;
-
-  if (invincible > 0) invincible--;
-
-  movePlayer();
-  collectCrystals();
-  updateEnemies();
-  checkPortal();
+function drawEnemy(e){
+ ctx.fillStyle="#e85d65";ctx.beginPath();ctx.arc(e.x,e.y+3,17,Math.PI,0);ctx.lineTo(e.x+17,e.y+10);ctx.quadraticCurveTo(e.x,e.y+25,e.x-17,e.y+10);ctx.fill();
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(e.x-6,e.y+1,4,0,Math.PI*2);ctx.arc(e.x+6,e.y+1,4,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#222";ctx.beginPath();ctx.arc(e.x-6,e.y+1,2,0,Math.PI*2);ctx.arc(e.x+6,e.y+1,2,0,Math.PI*2);ctx.fill();
 }
-
-// Draw forest background
-function drawBackground() {
-  ctx.fillStyle = "#82c96c";
-  ctx.fillRect(0,0,W,H);
-
-  // Grass details
-  for(let i=0;i<80;i++) {
-    const x=(i*97)%W;
-    const y=(i*67)%H;
-    ctx.fillStyle = "#70b95d";
-    ctx.fillRect(x,y,4,8);
-  }
-
-  // Small path
-  ctx.strokeStyle = "#d5c18a";
-  ctx.lineWidth = 45;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(45,45);
-  ctx.quadraticCurveTo(300,30,400,250);
-  ctx.quadraticCurveTo(620,430,735,455);
-  ctx.stroke();
+function drawPlayer(){
+ if(invuln>0&&Math.floor(invuln/8)%2===0)return;
+ if(mascot.complete&&mascot.naturalWidth){
+   // The supplied mascot image is cropped to its visible outline in assets/mascot.png.
+   ctx.drawImage(mascot,player.x-25,player.y-37,50,74);
+ }else{
+   ctx.fillStyle="#23b9e9";ctx.beginPath();ctx.arc(player.x,player.y,17,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#111";ctx.fillRect(player.x-9,player.y-2,18,8);
+   ctx.fillStyle="#fff";ctx.font="bold 9px Arial";ctx.textAlign="center";ctx.fillText("π",player.x,player.y+5);
+ }
 }
-
-// Draw trees and rocks
-function drawObstacles() {
-  obstacles.forEach(o => {
-    if(o.type==="tree") {
-      ctx.fillStyle="#76502e";
-      ctx.fillRect(o.x+27,o.y+40,18,38);
-
-      ctx.fillStyle="#267d45";
-      ctx.beginPath();
-      ctx.arc(o.x+35,o.y+30,37,0,Math.PI*2);
-      ctx.fill();
-
-      ctx.fillStyle="#46a957";
-      ctx.beginPath();
-      ctx.arc(o.x+25,o.y+17,20,0,Math.PI*2);
-      ctx.fill();
-
-      ctx.fillStyle="#8bd66c";
-      ctx.beginPath();
-      ctx.arc(o.x+17,o.y+10,7,0,Math.PI*2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle="#788c8a";
-      ctx.beginPath();
-      ctx.ellipse(o.x+35,o.y+35,34,27,0,0,Math.PI*2);
-      ctx.fill();
-
-      ctx.fillStyle="#a8bab0";
-      ctx.beginPath();
-      ctx.arc(o.x+23,o.y+24,9,0,Math.PI*2);
-      ctx.fill();
-    }
-  });
+function overlay(title,sub){
+ ctx.fillStyle="rgba(15,43,42,.82)";ctx.fillRect(150,210,600,160);
+ ctx.textAlign="center";ctx.fillStyle="#ffe18a";ctx.font="bold 36px Arial";ctx.fillText(title,W/2,270);
+ ctx.fillStyle="#fff";ctx.font="18px Arial";ctx.fillText(sub,W/2,310);
 }
-
-function drawCrystals() {
-  crystals.forEach(c => {
-    if(c.collected) return;
-
-    const bob=Math.sin(animationTime*0.08+c.x)*4;
-
-    ctx.save();
-    ctx.translate(c.x,c.y+bob);
-
-    ctx.shadowColor="#54f5ff";
-    ctx.shadowBlur=18;
-
-    ctx.fillStyle="#52edff";
-    ctx.beginPath();
-    ctx.moveTo(0,-15);
-    ctx.lineTo(11,-3);
-    ctx.lineTo(6,13);
-    ctx.lineTo(-6,13);
-    ctx.lineTo(-11,-3);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.restore();
-  });
+function render(){
+ drawGround();drawSolids();drawGate();drawCollectibles();drawVillager();enemies.forEach(drawEnemy);drawPlayer();
+ if(gameState==="won")overlay("VILLAGE SAVED!","You found every seal and opened the gate.");
+ if(gameState==="lost")overlay("TRY AGAIN!","Press Restart level to return to the village.");
+ if(gameState==="paused")overlay("PAUSED","Press Resume to continue your adventure.");
 }
-
-function drawPortal() {
-  ctx.save();
-  ctx.translate(portal.x,portal.y);
-
-  ctx.fillStyle=score===5?"#9c5bff":"#596a83";
-  ctx.shadowColor=score===5?"#db8bff":"transparent";
-  ctx.shadowBlur=score===5?25:0;
-
-  ctx.beginPath();
-  ctx.ellipse(0,0,25,32,0,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle=score===5?"#f4caff":"#364455";
-  ctx.beginPath();
-  ctx.ellipse(0,0,16,24,0,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.restore();
-}
-
-// Cartoon player
-function drawPlayer() {
-  if(invincible>0 && Math.floor(invincible/7)%2===0) return;
-
-  ctx.save();
-  ctx.translate(player.x,player.y);
-
-  // Body
-  ctx.fillStyle="#e7a34d";
-  ctx.fillRect(-11,-1,22,24);
-
-  // Face
-  ctx.fillStyle="#ffd6a2";
-  ctx.beginPath();
-  ctx.arc(0,-9,12,0,Math.PI*2);
-  ctx.fill();
-
-  // Hair
-  ctx.fillStyle="#653c27";
-  ctx.beginPath();
-  ctx.arc(0,-15,11,Math.PI,Math.PI*2);
-  ctx.fill();
-
-  // Eyes
-  ctx.fillStyle="#242424";
-  ctx.fillRect(-5,-10,3,4);
-  ctx.fillRect(3,-10,3,4);
-
-  // Backpack
-  ctx.fillStyle="#347bd1";
-  ctx.fillRect(-15,2,6,14);
-
-  // Feet
-  ctx.fillStyle="#513522";
-  ctx.fillRect(-10,20,8,6);
-  ctx.fillRect(3,20,8,6);
-
-  ctx.restore();
-}
-
-// Cartoon monsters
-function drawEnemies() {
-  enemies.forEach(e => {
-    ctx.save();
-    ctx.translate(e.x,e.y);
-
-    ctx.fillStyle="#e75b67";
-    ctx.beginPath();
-    ctx.arc(0,0,e.r,Math.PI,0);
-    ctx.lineTo(e.r,10);
-    ctx.lineTo(-e.r,10);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle="white";
-    ctx.beginPath();
-    ctx.arc(-5,-2,4,0,Math.PI*2);
-    ctx.arc(5,-2,4,0,Math.PI*2);
-    ctx.fill();
-
-    ctx.fillStyle="#202020";
-    ctx.beginPath();
-    ctx.arc(-5,-2,2,0,Math.PI*2);
-    ctx.arc(5,-2,2,0,Math.PI*2);
-    ctx.fill();
-
-    ctx.restore();
-  });
-}
-
-function drawOverlay(title,subtitle) {
-  ctx.fillStyle="rgba(15,35,34,0.82)";
-  ctx.fillRect(100,175,600,160);
-
-  ctx.textAlign="center";
-  ctx.fillStyle="#ffe17b";
-  ctx.font="bold 36px Arial";
-  ctx.fillText(title,400,235);
-
-  ctx.fillStyle="white";
-  ctx.font="19px Arial";
-  ctx.fillText(subtitle,400,278);
-}
-
-function draw() {
-  drawBackground();
-  drawPortal();
-  drawObstacles();
-  drawCrystals();
-  drawEnemies();
-  drawPlayer();
-
-  if(gameState==="won") {
-    drawOverlay("YOU WIN! 🏆","You restored the magic of the forest!");
-  }
-
-  if(gameState==="lost") {
-    drawOverlay("GAME OVER","Press Start / Restart to play again");
-  }
-}
-
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-
-// Keyboard controls
-document.addEventListener("keydown",e=>{
-  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))
-    e.preventDefault();
-
-  keys[e.key]=true;
+function loop(){update();render();requestAnimationFrame(loop);}
+document.addEventListener("keydown",e=>{if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))e.preventDefault();keys[e.key]=true;});
+document.addEventListener("keyup",e=>{keys[e.key]=false;});
+document.querySelectorAll("[data-dir]").forEach(b=>{
+ const k=b.dataset.dir;
+ b.addEventListener("pointerdown",e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys[k]=true;});
+ ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false));
 });
-
-document.addEventListener("keyup",e=>{
-  keys[e.key]=false;
+document.getElementById("restart").addEventListener("click",reset);
+ui.pause.addEventListener("click",()=>{
+ if(gameState==="playing"){gameState="paused";ui.pause.textContent="▶ Resume";}
+ else if(gameState==="paused"){gameState="playing";ui.pause.textContent="Ⅱ Pause";}
 });
-
-// Mobile controls
-document.querySelectorAll("[data-key]").forEach(button=>{
-  const key=button.dataset.key;
-
-  button.addEventListener("pointerdown",e=>{
-    e.preventDefault();
-    button.setPointerCapture(e.pointerId);
-    keys[key]=true;
-  });
-
-  button.addEventListener("pointerup",()=>keys[key]=false);
-  button.addEventListener("pointercancel",()=>keys[key]=false);
-  button.addEventListener("lostpointercapture",()=>keys[key]=false);
-});
-
-startGame();
-loop();
-
+reset();loop();
+})();
 </script>
 </body>
 </html>
