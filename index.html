@@ -1,0 +1,575 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lost Crystal - Forest Adventure</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 15px;
+  background: #182b35;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+h1 {
+  color: #ffe17b;
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  color: #c8e2d4;
+}
+
+.game-container {
+  max-width: 850px;
+  margin: 15px auto;
+}
+
+.hud {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  background: #294b45;
+  border-radius: 12px 12px 0 0;
+  font-weight: bold;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #82c96c;
+  border: 4px solid #e7d59a;
+  border-radius: 0 0 12px 12px;
+  touch-action: none;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 19px;
+  background: #ffd966;
+  color: #243c37;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  touch-action: none;
+}
+
+button:active {
+  background: #f3ad3d;
+  transform: scale(.96);
+}
+
+#message {
+  min-height: 28px;
+  color: #ffe9a6;
+  font-weight: bold;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, 65px);
+  grid-template-rows: repeat(2, 58px);
+  justify-content: center;
+  gap: 7px;
+  margin: 15px auto;
+}
+
+.controls button {
+  padding: 5px;
+  font-size: 25px;
+}
+
+.up { grid-column: 2; grid-row: 1; }
+.left { grid-column: 1; grid-row: 2; }
+.down { grid-column: 2; grid-row: 2; }
+.right { grid-column: 3; grid-row: 2; }
+
+.instructions {
+  max-width: 600px;
+  margin: 20px auto;
+  line-height: 1.7;
+  color: #d5e9de;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌳 THE LOST CRYSTAL</h1>
+<p class="subtitle">A Magical Forest Adventure</p>
+
+<div class="game-container">
+
+  <div class="hud">
+    <span>💎 Crystals: <span id="score">0</span>/5</span>
+    <span>❤️ Lives: <span id="lives">3</span></span>
+    <span>🏆 Mission: Find the Portal</span>
+  </div>
+
+  <canvas id="game" width="800" height="520"></canvas>
+
+  <p id="message">Explore the forest and collect 5 magic crystals!</p>
+
+  <button onclick="startGame()">▶ Start / Restart</button>
+
+  <div class="controls">
+    <button class="up" data-key="up">⬆️</button>
+    <button class="left" data-key="left">⬅️</button>
+    <button class="down" data-key="down">⬇️</button>
+    <button class="right" data-key="right">➡️</button>
+  </div>
+
+</div>
+
+<div class="instructions">
+  <b>How to play</b><br>
+  PC: Use Arrow Keys or WASD to move.<br>
+  Mobile: Use the directional buttons.<br>
+  Collect all 5 crystals, avoid the monsters and reach the portal!
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const scoreDisplay = document.getElementById("score");
+const livesDisplay = document.getElementById("lives");
+const message = document.getElementById("message");
+
+const W = 800;
+const H = 520;
+
+let player, enemies, crystals;
+let score = 0;
+let lives = 3;
+let gameState = "playing";
+let invincible = 0;
+let animationTime = 0;
+
+const keys = {};
+
+const portal = {
+  x: 735,
+  y: 455,
+  r: 29
+};
+
+// Forest obstacles
+const obstacles = [
+  {x:130,y:90,w:70,h:75,type:"tree"},
+  {x:270,y:80,w:75,h:75,type:"tree"},
+  {x:450,y:100,w:80,h:70,type:"tree"},
+  {x:650,y:100,w:75,h:75,type:"tree"},
+  {x:100,y:260,w:70,h:70,type:"rock"},
+  {x:300,y:270,w:85,h:65,type:"tree"},
+  {x:490,y:300,w:75,h:75,type:"tree"},
+  {x:650,y:300,w:70,h:70,type:"rock"},
+  {x:190,y:420,w:80,h:60,type:"tree"},
+  {x:410,y:440,w:75,h:55,type:"rock"}
+];
+
+const crystalLocations = [
+  {x:210,y:165},
+  {x:385,y:190},
+  {x:570,y:205},
+  {x:350,y:390},
+  {x:680,y:440}
+];
+
+function startGame() {
+  player = {x:45,y:45,w:27,h:32,speed:3.3};
+  score = 0;
+  lives = 3;
+  invincible = 0;
+  animationTime = 0;
+  gameState = "playing";
+
+  enemies = [
+    {x:380,y:50,speed:1.05,r:15},
+    {x:550,y:400,speed:1.2,r:16},
+    {x:100,y:370,speed:0.95,r:14}
+  ];
+
+  crystals = crystalLocations.map(p => ({
+    x:p.x, y:p.y, collected:false
+  }));
+
+  updateHUD();
+  message.textContent =
+    "Find all 5 crystals and unlock the portal!";
+}
+
+function updateHUD() {
+  scoreDisplay.textContent = score;
+  livesDisplay.textContent = lives;
+}
+
+function circleRect(cx,cy,r,rect) {
+  const x = Math.max(rect.x,Math.min(cx,rect.x+rect.w));
+  const y = Math.max(rect.y,Math.min(cy,rect.y+rect.h));
+  return Math.hypot(cx-x,cy-y) < r;
+}
+
+function blocked(x,y) {
+  if (x < 18 || x > W-18 || y < 18 || y > H-18)
+    return true;
+
+  return obstacles.some(o =>
+    circleRect(x,y,13,o)
+  );
+}
+
+function movePlayer() {
+  let dx = 0;
+  let dy = 0;
+
+  if (keys.ArrowLeft || keys.a || keys.left) dx--;
+  if (keys.ArrowRight || keys.d || keys.right) dx++;
+  if (keys.ArrowUp || keys.w || keys.up) dy--;
+  if (keys.ArrowDown || keys.s || keys.down) dy++;
+
+  if (dx && dy) {
+    dx *= 0.707;
+    dy *= 0.707;
+  }
+
+  const nx = player.x + dx * player.speed;
+  const ny = player.y + dy * player.speed;
+
+  if (!blocked(nx,player.y)) player.x = nx;
+  if (!blocked(player.x,ny)) player.y = ny;
+}
+
+function updateEnemies() {
+  enemies.forEach(enemy => {
+    const dx = player.x - enemy.x;
+    const dy = player.y - enemy.y;
+    const dist = Math.hypot(dx,dy);
+
+    if (dist > 0) {
+      const nx = enemy.x + dx/dist*enemy.speed;
+      const ny = enemy.y + dy/dist*enemy.speed;
+
+      if (!blocked(nx,enemy.y)) enemy.x = nx;
+      if (!blocked(enemy.x,ny)) enemy.y = ny;
+    }
+
+    if (invincible <= 0 &&
+        Math.hypot(player.x-enemy.x,player.y-enemy.y) < 27) {
+      lives--;
+      invincible = 100;
+
+      player.x = 45;
+      player.y = 45;
+
+      updateHUD();
+
+      if (lives <= 0) {
+        gameState = "lost";
+        message.textContent =
+          "Game Over! Press Start / Restart to try again.";
+      } else {
+        message.textContent =
+          "Ouch! A monster caught you. Be careful!";
+      }
+    }
+  });
+}
+
+function collectCrystals() {
+  crystals.forEach(crystal => {
+    if (!crystal.collected &&
+        Math.hypot(player.x-crystal.x,player.y-crystal.y)<25) {
+      crystal.collected = true;
+      score++;
+      updateHUD();
+      message.textContent = "✨ Crystal collected! Keep exploring!";
+    }
+  });
+}
+
+function checkPortal() {
+  if (Math.hypot(player.x-portal.x,player.y-portal.y)<35) {
+    if (score === 5) {
+      gameState = "won";
+      message.textContent =
+        "🎉 YOU WON! The magical portal is unlocked!";
+    } else {
+      message.textContent =
+        "The portal is locked! Find all 5 crystals first.";
+    }
+  }
+}
+
+function update() {
+  if (gameState !== "playing") return;
+
+  animationTime++;
+
+  if (invincible > 0) invincible--;
+
+  movePlayer();
+  collectCrystals();
+  updateEnemies();
+  checkPortal();
+}
+
+// Draw forest background
+function drawBackground() {
+  ctx.fillStyle = "#82c96c";
+  ctx.fillRect(0,0,W,H);
+
+  // Grass details
+  for(let i=0;i<80;i++) {
+    const x=(i*97)%W;
+    const y=(i*67)%H;
+    ctx.fillStyle = "#70b95d";
+    ctx.fillRect(x,y,4,8);
+  }
+
+  // Small path
+  ctx.strokeStyle = "#d5c18a";
+  ctx.lineWidth = 45;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(45,45);
+  ctx.quadraticCurveTo(300,30,400,250);
+  ctx.quadraticCurveTo(620,430,735,455);
+  ctx.stroke();
+}
+
+// Draw trees and rocks
+function drawObstacles() {
+  obstacles.forEach(o => {
+    if(o.type==="tree") {
+      ctx.fillStyle="#76502e";
+      ctx.fillRect(o.x+27,o.y+40,18,38);
+
+      ctx.fillStyle="#267d45";
+      ctx.beginPath();
+      ctx.arc(o.x+35,o.y+30,37,0,Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle="#46a957";
+      ctx.beginPath();
+      ctx.arc(o.x+25,o.y+17,20,0,Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle="#8bd66c";
+      ctx.beginPath();
+      ctx.arc(o.x+17,o.y+10,7,0,Math.PI*2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle="#788c8a";
+      ctx.beginPath();
+      ctx.ellipse(o.x+35,o.y+35,34,27,0,0,Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle="#a8bab0";
+      ctx.beginPath();
+      ctx.arc(o.x+23,o.y+24,9,0,Math.PI*2);
+      ctx.fill();
+    }
+  });
+}
+
+function drawCrystals() {
+  crystals.forEach(c => {
+    if(c.collected) return;
+
+    const bob=Math.sin(animationTime*0.08+c.x)*4;
+
+    ctx.save();
+    ctx.translate(c.x,c.y+bob);
+
+    ctx.shadowColor="#54f5ff";
+    ctx.shadowBlur=18;
+
+    ctx.fillStyle="#52edff";
+    ctx.beginPath();
+    ctx.moveTo(0,-15);
+    ctx.lineTo(11,-3);
+    ctx.lineTo(6,13);
+    ctx.lineTo(-6,13);
+    ctx.lineTo(-11,-3);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+
+function drawPortal() {
+  ctx.save();
+  ctx.translate(portal.x,portal.y);
+
+  ctx.fillStyle=score===5?"#9c5bff":"#596a83";
+  ctx.shadowColor=score===5?"#db8bff":"transparent";
+  ctx.shadowBlur=score===5?25:0;
+
+  ctx.beginPath();
+  ctx.ellipse(0,0,25,32,0,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle=score===5?"#f4caff":"#364455";
+  ctx.beginPath();
+  ctx.ellipse(0,0,16,24,0,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// Cartoon player
+function drawPlayer() {
+  if(invincible>0 && Math.floor(invincible/7)%2===0) return;
+
+  ctx.save();
+  ctx.translate(player.x,player.y);
+
+  // Body
+  ctx.fillStyle="#e7a34d";
+  ctx.fillRect(-11,-1,22,24);
+
+  // Face
+  ctx.fillStyle="#ffd6a2";
+  ctx.beginPath();
+  ctx.arc(0,-9,12,0,Math.PI*2);
+  ctx.fill();
+
+  // Hair
+  ctx.fillStyle="#653c27";
+  ctx.beginPath();
+  ctx.arc(0,-15,11,Math.PI,Math.PI*2);
+  ctx.fill();
+
+  // Eyes
+  ctx.fillStyle="#242424";
+  ctx.fillRect(-5,-10,3,4);
+  ctx.fillRect(3,-10,3,4);
+
+  // Backpack
+  ctx.fillStyle="#347bd1";
+  ctx.fillRect(-15,2,6,14);
+
+  // Feet
+  ctx.fillStyle="#513522";
+  ctx.fillRect(-10,20,8,6);
+  ctx.fillRect(3,20,8,6);
+
+  ctx.restore();
+}
+
+// Cartoon monsters
+function drawEnemies() {
+  enemies.forEach(e => {
+    ctx.save();
+    ctx.translate(e.x,e.y);
+
+    ctx.fillStyle="#e75b67";
+    ctx.beginPath();
+    ctx.arc(0,0,e.r,Math.PI,0);
+    ctx.lineTo(e.r,10);
+    ctx.lineTo(-e.r,10);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle="white";
+    ctx.beginPath();
+    ctx.arc(-5,-2,4,0,Math.PI*2);
+    ctx.arc(5,-2,4,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#202020";
+    ctx.beginPath();
+    ctx.arc(-5,-2,2,0,Math.PI*2);
+    ctx.arc(5,-2,2,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+
+function drawOverlay(title,subtitle) {
+  ctx.fillStyle="rgba(15,35,34,0.82)";
+  ctx.fillRect(100,175,600,160);
+
+  ctx.textAlign="center";
+  ctx.fillStyle="#ffe17b";
+  ctx.font="bold 36px Arial";
+  ctx.fillText(title,400,235);
+
+  ctx.fillStyle="white";
+  ctx.font="19px Arial";
+  ctx.fillText(subtitle,400,278);
+}
+
+function draw() {
+  drawBackground();
+  drawPortal();
+  drawObstacles();
+  drawCrystals();
+  drawEnemies();
+  drawPlayer();
+
+  if(gameState==="won") {
+    drawOverlay("YOU WIN! 🏆","You restored the magic of the forest!");
+  }
+
+  if(gameState==="lost") {
+    drawOverlay("GAME OVER","Press Start / Restart to play again");
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Keyboard controls
+document.addEventListener("keydown",e=>{
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))
+    e.preventDefault();
+
+  keys[e.key]=true;
+});
+
+document.addEventListener("keyup",e=>{
+  keys[e.key]=false;
+});
+
+// Mobile controls
+document.querySelectorAll("[data-key]").forEach(button=>{
+  const key=button.dataset.key;
+
+  button.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    button.setPointerCapture(e.pointerId);
+    keys[key]=true;
+  });
+
+  button.addEventListener("pointerup",()=>keys[key]=false);
+  button.addEventListener("pointercancel",()=>keys[key]=false);
+  button.addEventListener("lostpointercapture",()=>keys[key]=false);
+});
+
+startGame();
+loop();
+
+</script>
+</body>
+</html>
